@@ -1,20 +1,48 @@
 // components/StatCards.tsx
-import React from "react";
+"use client";
 
-interface StatCardsProps {
-  activeCount?: number;
-  processingCount?: number;
-  expiredCount?: number;
-}
+import React, { useEffect, useState } from "react";
+import { collection, onSnapshot, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-export default function StatCards({
-  activeCount = 15,     // Dummy data for now
-  processingCount = 8,  // Dummy data for now
-  expiredCount = 3,     // Dummy data for now
-}: StatCardsProps) {
+export default function StatCards() {
+  const [activeCount, setActiveCount] = useState(0);
+  const [processingCount, setProcessingCount] = useState(0);
+  const [expiredCount, setExpiredCount] = useState(0);
+
+  useEffect(() => {
+    // We only want to count MOAs that haven't been soft-deleted
+    const q = query(collection(db, "moas"), where("isDeleted", "==", false));
+    
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      let active = 0;
+      let processing = 0;
+      let expired = 0;
+
+      snapshot.forEach((doc) => {
+        const status = doc.data().status || "";
+        
+        // Categorize based on keywords in your status list
+        if (status.includes("APPROVED")) {
+          active++;
+        } else if (status.includes("PROCESSING")) {
+          processing++;
+        } else if (status.includes("EXPIRED") || status.includes("EXPIRING")) {
+          expired++;
+        }
+      });
+
+      setActiveCount(active);
+      setProcessingCount(processing);
+      setExpiredCount(expired);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   return (
     <div className="space-y-6">
-      {/* Filters Area */}
+      {/* Filters Area (UI Only for now) */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-gray-200">
         <h2 className="text-lg font-semibold text-gray-700">Dashboard Overview</h2>
         
@@ -25,7 +53,6 @@ export default function StatCards({
             <option value="CCS">College of Computer Studies</option>
             <option value="CBA">College of Business Administration</option>
             <option value="COE">College of Engineering</option>
-            {/* Add more colleges as needed */}
           </select>
 
           {/* Date Period Filter */}
@@ -33,13 +60,11 @@ export default function StatCards({
             <input 
               type="date" 
               className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neu-secondary text-gray-700"
-              aria-label="Start Date"
             />
             <span className="text-gray-500 text-sm">to</span>
             <input 
               type="date" 
               className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neu-secondary text-gray-700"
-              aria-label="End Date"
             />
           </div>
         </div>

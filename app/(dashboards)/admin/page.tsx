@@ -32,7 +32,7 @@ export default function AdminDashboard() {
           </button>
         </div>
         
-        <StatCards activeCount={24} processingCount={12} expiredCount={5} />
+        <StatCards />
         
         {/* Pass the state SETTERS to the SearchBar so it can update them */}
         <SearchBar 

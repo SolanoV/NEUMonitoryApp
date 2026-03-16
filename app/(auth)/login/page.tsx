@@ -1,53 +1,62 @@
+// app/(auth)/login/page.tsx
 "use client";
 
-import { useState } from "react";
-import { signInWithPopup, signOut } from "firebase/auth";
+import { useState, useEffect } from "react";
+import { signInWithPopup } from "firebase/auth";
 import { auth, googleProvider } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function LoginPage() {
-  const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
+  
   const router = useRouter();
+  const { user, loading } = useAuth();
 
-  const handleGoogleLogin = async () => {
-    // 1. Clear any old errors immediately
-    setError("");
-    
-    // NOTE: We do NOT set isLoading(true) here. 
-    // We must trigger the popup instantly so the browser doesn't block it.
-
-    try {
-      // 2. Open the Google Popup instantly
-      const result = await signInWithPopup(auth, googleProvider);
-      
-      // 3. Popup is done! NOW we show the loading state while we check the database
-      setIsLoading(true);
-      
-      const userEmail = result.user.email || "";
-
-      // 4. Requirement #1: Must use institutional email
-      if (!userEmail.endsWith("@neu.edu.ph")) {
-        await signOut(auth); 
-        setError("Access Denied. Please use your institutional (@neu.edu.ph) email address.");
-        setIsLoading(false); // Turn off loading so they can click the button again!
-        return; 
-      }
-
-      // 5. Success! Redirect to dashboard
+  // If already logged in, send directly to home
+  useEffect(() => {
+    if (user && !loading) {
       router.push("/");
-      
-    } catch (err: any) {
-      console.error(err);
-      
-      if (err.code === 'auth/popup-closed-by-user') {
-        setError("Sign-in was cancelled. Please try again.");
-      } else {
-        setError("Failed to log in. Please try again.");
-      }
-      setIsLoading(false); // Ensure the button resets on error
     }
+  }, [user, loading, router]);
+
+  const handleGoogleLogin = () => {
+    // 1. MUST BE THE VERY FIRST THING TO HAPPEN ON CLICK
+    // Notice we do NOT use 'async' or 'await' or 'setIsLoading' here!
+    signInWithPopup(auth, googleProvider)
+      .then((result) => {
+        // 2. Only turn on loading states AFTER the popup successfully opens and finishes
+        setIsLoading(true);
+        console.log("Logged in successfully:", result.user.email);
+        // AuthProvider will automatically take over and route you to "/"
+      })
+      .catch((err) => {
+        console.error("Popup Error:", err);
+        
+        // Handle specific errors gracefully
+        if (err.code === 'auth/popup-closed-by-user') {
+          setError("Sign-in was cancelled. Please try again.");
+        } else if (err.code === 'auth/popup-blocked') {
+          setError("Popup blocked! Please check the URL bar and allow popups for localhost.");
+        } else {
+          setError("Failed to log in. Please try again.");
+        }
+        
+        setIsLoading(false);
+      });
   };
+
+  // Show a loading screen while verifying
+  if (loading || user) {
+    return (
+      <div className="flex justify-center items-center min-h-[60vh]">
+        <div className="animate-pulse text-neu-primary font-semibold text-lg">
+          Verifying authentication...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center items-center min-h-[60vh]">
@@ -66,7 +75,6 @@ export default function LoginPage() {
           disabled={isLoading}
           className="w-full flex items-center justify-center gap-3 bg-neu-primary hover:bg-neu-secondary text-white font-medium py-3 px-4 rounded-lg transition disabled:opacity-50"
         >
-          {/* Simple Google SVG Icon */}
           <svg className="w-5 h-5 bg-white rounded-full p-0.5" viewBox="0 0 24 24">
              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.58c2.08-1.92 3.28-4.74 3.28-8.09z" />
              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
