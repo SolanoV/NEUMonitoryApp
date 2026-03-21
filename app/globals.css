@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* NEU MOA App Color Palette */
   --color-neu-primary: #84B179;
@@ -14,4 +16,9 @@
 body {
   background-color: #f9fafb; /* Light gray background */
   color: var(--color-neu-black);
+}
+
+.dark body {
+  background-color: #111827; /* Deep dark gray */
+  color: var(--color-neu-white);
 }

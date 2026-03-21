@@ -1,10 +1,10 @@
-// components/Navbar.tsx
 "use client";
 
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { signOut } from "firebase/auth";
 import { auth } from "@/lib/firebase";
+import ThemeToggle from "./ThemeToggle"; // <-- IMPORT THEME TOGGLE
 
 export default function Navbar() {
   // Grab the user, their role, and the loading state from our Context
@@ -19,7 +19,8 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="bg-neu-primary text-neu-white shadow-md">
+    // Added dark mode classes and smooth transition to the nav wrapper
+    <nav className="bg-neu-primary dark:bg-gray-900 text-neu-white shadow-md transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
           
@@ -51,9 +52,23 @@ export default function Navbar() {
               // Show a tiny loading text while Firebase figures out who is logged in
               <span className="text-sm text-neu-light animate-pulse">Loading...</span>
             ) : user ? (
-              // If logged in, show their email and a Logout button
+              
+              // --- UPDATED LOGGED IN SECTION ---
               <div className="flex items-center gap-4">
-                <span className="text-sm hidden sm:block opacity-90">{user.email}</span>
+                
+                {/* 1. Added the Name above the Email */}
+                <div className="hidden sm:flex flex-col text-right mr-2">
+                  <span className="text-sm font-bold leading-tight">
+                    {user.displayName || "NEU User"}
+                  </span>
+                  <span className="text-xs opacity-80">
+                    {user.email}
+                  </span>
+                </div>
+
+                {/* 2. Inserted the Theme Toggle */}
+                <ThemeToggle />
+
                 <button 
                   onClick={handleLogout}
                   className="bg-transparent border border-neu-light text-neu-white px-4 py-1.5 rounded-md font-medium hover:bg-neu-light hover:text-neu-primary transition"
@@ -61,6 +76,7 @@ export default function Navbar() {
                   Logout
                 </button>
               </div>
+              
             ) : (
               // If completely logged out, show the Login button
               <Link 
