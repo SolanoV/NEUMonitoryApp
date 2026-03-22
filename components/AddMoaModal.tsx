@@ -2,8 +2,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 
 interface AddMoaModalProps {
@@ -38,22 +37,38 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
     setIsLoading(true);
 
     try {
-      // 1. Save the new MOA to the database
-      const moaRef = await addDoc(collection(db, "moas"), {
-        ...formData,
-        isDeleted: false,
-        auditTrail: `Added by ${user.email} on ${new Date().toLocaleDateString()}`,
-        createdAt: serverTimestamp(),
-      });
+      // 1. Save the new MOA to the database (Mapping camelCase to Postgres snake_case)
+      const { data: moaData, error: moaError } = await supabase
+        .from("moas")
+        .insert([{
+          hte_id: formData.hteId,
+          company_name: formData.companyName,
+          address: formData.address,
+          contact_person: formData.contactPerson,
+          email: formData.email,
+          industry: formData.industry,
+          effective_date: formData.effectiveDate || null,
+          status: formData.status,
+          endorsed_by: formData.endorsedBy,
+          is_deleted: false,
+          audit_trail: `Added by ${user.email} on ${new Date().toLocaleDateString()}`
+        }])
+        .select()
+        .single();
 
-      // 2. Save the official Audit Log (Requirement #8j)
-      await addDoc(collection(db, "audit_logs"), {
-        moaId: moaRef.id,
-        companyName: formData.companyName,
-        userEmail: user.email,
-        action: "INSERT",
-        timestamp: serverTimestamp(),
-      });
+      if (moaError) throw moaError;
+
+      // 2. Save the official Audit Log
+      const { error: auditError } = await supabase
+        .from("audit_logs")
+        .insert([{
+          moa_id: moaData.id,
+          company_name: formData.companyName,
+          user_email: user.email,
+          action: "INSERT",
+        }]);
+
+      if (auditError) throw auditError;
 
       // Success! Close the modal and reset the form
       onClose();
@@ -72,6 +87,7 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
 
   if (!isOpen) return null;
 
+  // Render remains exactly the same...
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">

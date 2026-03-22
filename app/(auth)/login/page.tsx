@@ -2,10 +2,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { signInWithPopup } from "firebase/auth";
-import { auth, googleProvider } from "@/lib/firebase";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { supabase } from "@/lib/supabase";
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -17,34 +16,32 @@ export default function LoginPage() {
   // If already logged in, send directly to home
   useEffect(() => {
     if (user && !loading) {
-      router.push("/");
+      router.push("/"); 
     }
   }, [user, loading, router]);
 
-  const handleGoogleLogin = () => {
-    // 1. MUST BE THE VERY FIRST THING TO HAPPEN ON CLICK
-    // Notice we do NOT use 'async' or 'await' or 'setIsLoading' here!
-    signInWithPopup(auth, googleProvider)
-      .then((result) => {
-        // 2. Only turn on loading states AFTER the popup successfully opens and finishes
-        setIsLoading(true);
-        console.log("Logged in successfully:", result.user.email);
-        // AuthProvider will automatically take over and route you to "/"
-      })
-      .catch((err) => {
-        console.error("Popup Error:", err);
-        
-        // Handle specific errors gracefully
-        if (err.code === 'auth/popup-closed-by-user') {
-          setError("Sign-in was cancelled. Please try again.");
-        } else if (err.code === 'auth/popup-blocked') {
-          setError("Popup blocked! Please check the URL bar and allow popups for localhost.");
-        } else {
-          setError("Failed to log in. Please try again.");
-        }
-        
-        setIsLoading(false);
-      });
+  const handleGoogleLogin = async () => {
+    setIsLoading(true);
+    setError("");
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        queryParams: {
+          hd: "neu.edu.ph",
+          prompt: "select_account", // Forces the Google prompt to ask for an NEU email
+        },
+        // Automatically send them to the callback route after Google approves
+        redirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+
+    if (error) {
+      console.error("Login Error:", error);
+      setError(error.message || "Failed to log in. Please try again.");
+      setIsLoading(false);
+    }
+    // Note: If successful, the browser will redirect, so we don't need to toggle setIsLoading back to false here.
   };
 
   // Show a loading screen while verifying
@@ -60,12 +57,12 @@ export default function LoginPage() {
 
   return (
     <div className="flex justify-center items-center min-h-[60vh]">
-      <div className="bg-white p-8 rounded-xl shadow-md border border-gray-200 max-w-md w-full text-center">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">Welcome Back</h1>
-        <p className="text-gray-500 mb-6 text-sm">Sign in to access the NEU MOA Portal.</p>
+      <div className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-md border border-gray-200 dark:border-gray-700 max-w-md w-full text-center transition-colors">
+        <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-2">Welcome Back</h1>
+        <p className="text-gray-500 dark:text-gray-400 mb-6 text-sm">Sign in to access the NEU MOA Portal.</p>
 
         {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-md text-sm mb-4 border border-red-200">
+          <div className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-3 rounded-md text-sm mb-4 border border-red-200 dark:border-red-800">
             {error}
           </div>
         )}
@@ -75,7 +72,8 @@ export default function LoginPage() {
           disabled={isLoading}
           className="w-full flex items-center justify-center gap-3 bg-neu-primary hover:bg-neu-secondary text-white font-medium py-3 px-4 rounded-lg transition disabled:opacity-50"
         >
-          <svg className="w-5 h-5 bg-white rounded-full p-0.5" viewBox="0 0 24 24">
+          {/* Removed bg-white to fix the background issue */}
+          <svg className="w-5 h-5 p-0.5" viewBox="0 0 24 24">
              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.58c2.08-1.92 3.28-4.74 3.28-8.09z" />
              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />

@@ -1,8 +1,8 @@
-    "use client";
+// components/EditMoaModal.tsx
+"use client";
 
 import React, { useState, useEffect } from "react";
-import { doc, updateDoc, collection, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 
 interface EditMoaModalProps {
@@ -16,7 +16,6 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState(moaData || {});
 
-  // Whenever the modal opens with new moaData, update our form state
   useEffect(() => {
     if (moaData) {
       setFormData(moaData);
@@ -34,29 +33,36 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
 
     try {
       // 1. Update the actual MOA document
-      const moaRef = doc(db, "moas", formData.id);
-      await updateDoc(moaRef, {
-        hteId: formData.hteId,
-        companyName: formData.companyName,
-        address: formData.address,
-        contactPerson: formData.contactPerson,
-        email: formData.email,
-        industry: formData.industry,
-        effectiveDate: formData.effectiveDate,
-        status: formData.status,
-        endorsedBy: formData.endorsedBy,
-        auditTrail: `Edited by ${user.email} on ${new Date().toLocaleDateString()}`,
-        updatedAt: serverTimestamp(),
-      });
+      const { error: updateError } = await supabase
+        .from("moas")
+        .update({
+          hte_id: formData.hteId,
+          company_name: formData.companyName,
+          address: formData.address,
+          contact_person: formData.contactPerson,
+          email: formData.email,
+          industry: formData.industry,
+          effective_date: formData.effectiveDate || null,
+          status: formData.status,
+          endorsed_by: formData.endorsedBy,
+          audit_trail: `Edited by ${user.email} on ${new Date().toLocaleDateString()}`,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", formData.id);
+
+      if (updateError) throw updateError;
 
       // 2. Save the official Audit Log
-      await addDoc(collection(db, "audit_logs"), {
-        moaId: formData.id,
-        companyName: formData.companyName,
-        userEmail: user.email,
-        action: "UPDATE",
-        timestamp: serverTimestamp(),
-      });
+      const { error: auditError } = await supabase
+        .from("audit_logs")
+        .insert([{
+          moa_id: formData.id,
+          company_name: formData.companyName,
+          user_email: user.email,
+          action: "UPDATE",
+        }]);
+
+      if (auditError) throw auditError;
 
       // Success! Close modal
       onClose();
@@ -70,6 +76,7 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
 
   if (!isOpen || !moaData) return null;
 
+  // Render remains exactly the same...
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">

@@ -1,14 +1,11 @@
-
+// components/MoaTable.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { collection, onSnapshot, query, doc, updateDoc, addDoc, serverTimestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/components/AuthProvider";
 import EditMoaModal from "@/components/EditMoaModal";
 
-
-// Define the shape of our MOA data
 interface Moa {
   id: string;
   hteId: string;
@@ -38,75 +35,104 @@ export default function MoaTable({ searchTerm = "", filterIndustry = "", filterS
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedMoa, setSelectedMoa] = useState<Moa | null>(null);
 
-  useEffect(() => {
-    // Listen to the "moas" collection in real-time
-    const q = query(collection(db, "moas")); // Later we will add orderBy("createdAt", "desc")
-    
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const moaData: Moa[] = [];
-      snapshot.forEach((doc) => {
-        moaData.push({ id: doc.id, ...doc.data() } as Moa);
-      });
-      setMoas(moaData);
-      setLoading(false);
-    });
+  // Helper to map Supabase snake_case to frontend camelCase
+  const mapMoaData = (data: any[]): Moa[] => {
+    return data.map(dbMoa => ({
+      id: dbMoa.id,
+      hteId: dbMoa.hte_id,
+      companyName: dbMoa.company_name,
+      address: dbMoa.address,
+      contactPerson: dbMoa.contact_person,
+      email: dbMoa.email,
+      industry: dbMoa.industry,
+      effectiveDate: dbMoa.effective_date,
+      status: dbMoa.status,
+      endorsedBy: dbMoa.endorsed_by,
+      auditTrail: dbMoa.audit_trail,
+      isDeleted: dbMoa.is_deleted
+    }));
+  };
 
-    // Cleanup the listener when the component unmounts
-    return () => unsubscribe();
+  const fetchMoas = async () => {
+    const { data, error } = await supabase
+      .from("moas")
+      .select("*")
+      .order("created_at", { ascending: false });
+      
+    if (data) setMoas(mapMoaData(data));
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    // Initial fetch
+    fetchMoas();
+
+    // Listen to real-time changes
+    const channel = supabase
+      .channel("public:moas")
+      .on("postgres_changes", { event: "*", schema: "public", table: "moas" }, () => {
+        fetchMoas(); // Refetch on any change
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
-  // Function to Soft Delete an MOA
   const handleSoftDelete = async (moaId: string, companyName: string) => {
     if (!window.confirm(`Are you sure you want to delete the MOA for ${companyName}?`)) return;
     
     try {
       // 1. Update the MOA document
-      const moaRef = doc(db, "moas", moaId);
-      await updateDoc(moaRef, {
-        isDeleted: true,
-        auditTrail: `Deleted by ${user?.email} on ${new Date().toLocaleDateString()}`
-      });
+      await supabase
+        .from("moas")
+        .update({
+          is_deleted: true,
+          audit_trail: `Deleted by ${user?.email} on ${new Date().toLocaleDateString()}`
+        })
+        .eq("id", moaId);
 
       // 2. Add an Audit Log
-      await addDoc(collection(db, "audit_logs"), {
-        moaId: moaId,
-        companyName: companyName,
-        userEmail: user?.email,
-        action: "SOFT_DELETE",
-        timestamp: serverTimestamp(),
-      });
+      await supabase.from("audit_logs").insert([{
+        moa_id: moaId,
+        company_name: companyName,
+        user_email: user?.email,
+        action: "SOFT_DELETE"
+      }]);
     } catch (error) {
       console.error("Error deleting MOA:", error);
       alert("Failed to delete MOA.");
     }
   };
 
-  // Function to Recover a deleted MOA
   const handleRecover = async (moaId: string, companyName: string) => {
     if (!window.confirm(`Are you sure you want to recover the MOA for ${companyName}?`)) return;
 
     try {
       // 1. Update the MOA document
-      const moaRef = doc(db, "moas", moaId);
-      await updateDoc(moaRef, {
-        isDeleted: false,
-        auditTrail: `Recovered by ${user?.email} on ${new Date().toLocaleDateString()}`
-      });
+      await supabase
+        .from("moas")
+        .update({
+          is_deleted: false,
+          audit_trail: `Recovered by ${user?.email} on ${new Date().toLocaleDateString()}`
+        })
+        .eq("id", moaId);
 
       // 2. Add an Audit Log
-      await addDoc(collection(db, "audit_logs"), {
-        moaId: moaId,
-        companyName: companyName,
-        userEmail: user?.email,
-        action: "RECOVER",
-        timestamp: serverTimestamp(),
-      });
+      await supabase.from("audit_logs").insert([{
+        moa_id: moaId,
+        company_name: companyName,
+        user_email: user?.email,
+        action: "RECOVER"
+      }]);
     } catch (error) {
       console.error("Error recovering MOA:", error);
       alert("Failed to recover MOA.");
     }
   };
 
+  // Remaining component logic (filters and return render) is exactly the same
   if (loading) {
     return (
       <div className="mt-8 p-8 border border-gray-200 rounded-lg text-center text-gray-500 bg-white shadow-sm">
@@ -123,20 +149,16 @@ export default function MoaTable({ searchTerm = "", filterIndustry = "", filterS
     );
   }
 
-  // Filter out deleted rows for Faculty and Students (Admin sees everything)
   let filteredMoas = role === "admin" ? moas : moas.filter(moa => !moa.isDeleted);
 
-  // 2. Apply Search and Dropdown Filters
   filteredMoas = filteredMoas.filter((moa) => {
-    // Check text search (matches Company, Contact, or Address)
     const searchLower = searchTerm.toLowerCase();
     const matchesSearch = searchTerm === "" || 
-      moa.hteId?.toLowerCase().includes(searchLower) ||          // <-- ADDED THIS LINE
+      moa.hteId?.toLowerCase().includes(searchLower) ||
       moa.companyName?.toLowerCase().includes(searchLower) ||
       moa.contactPerson?.toLowerCase().includes(searchLower) ||
       moa.address?.toLowerCase().includes(searchLower);
 
-    // Check dropdowns
     const matchesIndustry = filterIndustry === "" || moa.industry === filterIndustry;
     const matchesStatus = filterStatus === "" || moa.status?.includes(filterStatus);
 
@@ -149,22 +171,15 @@ export default function MoaTable({ searchTerm = "", filterIndustry = "", filterS
         <table className="w-full text-sm text-left text-gray-600">
           <thead className="text-xs text-gray-700 uppercase bg-gray-50 border-b border-gray-200">
             <tr>
-              {/* Columns visible to Admin and Faculty */}
               {role !== "student" && <th className="px-4 py-3">HTE ID</th>}
-              
-              {/* Columns visible to EVERYONE */}
               <th className="px-4 py-3">Company Info</th>
               <th className="px-4 py-3">Contact Person</th>
-              
-              {/* Columns visible to Admin and Faculty */}
               {role !== "student" && (
                 <>
                   <th className="px-4 py-3">Industry / College</th>
                   <th className="px-4 py-3">Status / Date</th>
                 </>
               )}
-
-              {/* Columns visible ONLY to Admin */}
               {role === "admin" && (
                 <>
                   <th className="px-4 py-3">Audit Trail</th>
@@ -225,8 +240,8 @@ export default function MoaTable({ searchTerm = "", filterIndustry = "", filterS
                             <>
                                 <button 
                                     onClick={() => {
-                                    setSelectedMoa(moa);
-                                    setIsEditModalOpen(true);
+                                      setSelectedMoa(moa);
+                                      setIsEditModalOpen(true);
                                     }}
                                     className="text-blue-600 hover:text-blue-900 font-medium text-xs transition"
                                 >

@@ -1,25 +1,23 @@
+// components/Navbar.tsx
 "use client";
 
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
-import { signOut } from "firebase/auth";
-import { auth } from "@/lib/firebase";
-import ThemeToggle from "./ThemeToggle"; // <-- IMPORT THEME TOGGLE
+import { supabase } from "@/lib/supabase";
+import ThemeToggle from "./ThemeToggle"; 
 
 export default function Navbar() {
-  // Grab the user, their role, and the loading state from our Context
   const { user, role, loading } = useAuth();
 
   const handleLogout = async () => {
     try {
-      await signOut(auth);
+      await supabase.auth.signOut();
     } catch (error) {
       console.error("Error logging out:", error);
     }
   };
 
   return (
-    // Added dark mode classes and smooth transition to the nav wrapper
     <nav className="bg-neu-primary dark:bg-gray-900 text-neu-white shadow-md transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
@@ -31,7 +29,7 @@ export default function Navbar() {
             </Link>
           </div>
 
-          {/* Smart Navigation Links (Only show when fully loaded and logged in) */}
+          {/* Smart Navigation Links */}
           {!loading && user && (
             <div className="hidden md:flex space-x-8">
               {role === "student" && (
@@ -49,17 +47,15 @@ export default function Navbar() {
           {/* Smart User Actions */}
           <div className="flex items-center space-x-4">
             {loading ? (
-              // Show a tiny loading text while Firebase figures out who is logged in
               <span className="text-sm text-neu-light animate-pulse">Loading...</span>
             ) : user ? (
-              
-              // --- UPDATED LOGGED IN SECTION ---
               <div className="flex items-center gap-4">
                 
                 {/* 1. Added the Name above the Email */}
                 <div className="hidden sm:flex flex-col text-right mr-2">
                   <span className="text-sm font-bold leading-tight">
-                    {user.displayName || "NEU User"}
+                    {/* Access Google display name from Supabase metadata */}
+                    {user.user_metadata?.full_name || "NEU User"}
                   </span>
                   <span className="text-xs opacity-80">
                     {user.email}
@@ -76,9 +72,7 @@ export default function Navbar() {
                   Logout
                 </button>
               </div>
-              
             ) : (
-              // If completely logged out, show the Login button
               <Link 
                 href="/login" 
                 className="bg-neu-white text-neu-primary px-4 py-2 rounded-md font-semibold hover:bg-neu-light hover:text-neu-black transition"
@@ -87,7 +81,6 @@ export default function Navbar() {
               </Link>
             )}
           </div>
-
         </div>
       </div>
     </nav>

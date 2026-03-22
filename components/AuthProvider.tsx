@@ -1,9 +1,9 @@
+// components/AuthProvider.tsx
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { onAuthStateChanged, User, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { auth, db } from "@/lib/firebase";
+import { User } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
 
 interface AuthContextType {
   user: User | null;
@@ -23,45 +23,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Listen for the login state changes directly from Firebase
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      if (firebaseUser) {
+    const handleUserSession = async (supabaseUser: User | null) => {
+      if (supabaseUser) {
         
         // --- SECURITY CHECK ---
-        // NOTE: If you are currently testing with a personal Gmail, temporarily 
-        // change "@neu.edu.ph" to "@gmail.com" below so it lets you in!
-        if (!firebaseUser.email?.endsWith("@neu.edu.ph")) {
+        if (!supabaseUser.email?.endsWith("@neu.edu.ph")) {
           console.error("Access Denied: Not an institutional email.");
-          await signOut(auth); // Kick them out quietly
+          await supabase.auth.signOut();
           setUser(null);
           setRole(null);
           setLoading(false);
           return;
         }
 
-        // Email is valid, lock the user in state
-        setUser(firebaseUser);
+        setUser(supabaseUser);
         
         try {
-          // Check if the user already exists in our Firestore database
-          const userRef = doc(db, "users", firebaseUser.uid);
-          const userSnap = await getDoc(userRef);
+          // Because of our SQL trigger, the user row is guaranteed to exist.
+          // We just need to grab their role!
+          const { data: userData, error } = await supabase
+            .from("users")
+            .select("role")
+            .eq("id", supabaseUser.id)
+            .single();
 
-          if (userSnap.exists()) {
-            // Returning user: Grab their assigned role
-            setRole(userSnap.data().role);
+          if (userData) {
+            setRole(userData.role);
           } else {
-            // First time logging in! Create their profile as a 'student'
-            await setDoc(userRef, {
-              email: firebaseUser.email,
-              role: "student", // Default role
-              isBlocked: false,
-              createdAt: serverTimestamp()
-            });
+            // Quick fallback just in case the trigger took a millisecond too long
             setRole("student");
           }
         } catch (dbError) {
-          console.error("Error fetching user data from Firestore:", dbError);
+          console.error("Error fetching user data from Supabase:", dbError);
+          setRole("student");
         }
 
       } else {
@@ -70,12 +64,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setRole(null);
       }
       
-      // Stop the loading spinner
       setLoading(false);
+    };
+
+    // 1. Check the active session immediately on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      handleUserSession(session?.user ?? null);
     });
 
-    // Cleanup the listener when the app closes
-    return () => unsubscribe();
+    // 2. Listen for login/logout state changes
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      handleUserSession(session?.user ?? null);
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
   }, []);
 
   return (
@@ -85,5 +89,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// Custom hook to make it easy to grab auth data anywhere in the app
 export const useAuth = () => useContext(AuthContext);
