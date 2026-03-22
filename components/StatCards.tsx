@@ -1,103 +1,78 @@
+// components/StatCards.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
-export default function StatCards() {
+interface StatCardsProps {
+  filterCollege: string;
+  filterIndustry: string;
+  filterStatus: string;
+  startDate: string;
+  endDate: string;
+}
+
+export default function StatCards({ filterCollege, filterIndustry, filterStatus, startDate, endDate }: StatCardsProps) {
   const [activeCount, setActiveCount] = useState(0);
   const [processingCount, setProcessingCount] = useState(0);
   const [expiredCount, setExpiredCount] = useState(0);
-
-  const fetchStats = async () => {
-    // We only want to count MOAs that haven't been soft-deleted
-    const { data } = await supabase
-      .from("moas")
-      .select("status")
-      .eq("is_deleted", false);
-
-    if (data) {
-      let active = 0;
-      let processing = 0;
-      let expired = 0;
-
-      data.forEach((row) => {
-        const status = row.status || "";
-        
-        if (status.includes("APPROVED")) {
-          active++;
-        } else if (status.includes("PROCESSING")) {
-          processing++;
-        } else if (status.includes("EXPIRED") || status.includes("EXPIRING")) {
-          expired++;
-        }
-      });
-
-      setActiveCount(active);
-      setProcessingCount(processing);
-      setExpiredCount(expired);
-    }
-  };
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
-    fetchStats();
+    const fetchStats = async () => {
+      let query = supabase.from("moas").select("status").eq("is_deleted", false);
 
-    // Re-fetch when the DB updates
-    const channel = supabase
-      .channel("public:moas-stats")
-      .on("postgres_changes", { event: "*", schema: "public", table: "moas" }, () => {
-        fetchStats();
-      })
-      .subscribe();
+      // Filters applied to the database count
+      if (filterCollege) query = query.eq("endorsed_by", filterCollege);
+      if (filterIndustry) query = query.eq("industry", filterIndustry);
+      if (filterStatus) query = query.ilike("status", `%${filterStatus}%`);
+      if (startDate) query = query.gte("effective_date", startDate);
+      if (endDate) query = query.lte("effective_date", endDate);
 
-    return () => {
-      supabase.removeChannel(channel);
+      const { data, error } = await query;
+
+      if (data && !error) {
+        let active = 0; let processing = 0; let expired = 0;
+
+        data.forEach((row) => {
+          const status = row.status || "";
+          if (status.includes("APPROVED")) active++;
+          else if (status.includes("PROCESSING")) processing++;
+          else if (status.includes("EXPIRED") || status.includes("EXPIRING")) expired++;
+        });
+
+        setActiveCount(active);
+        setProcessingCount(processing);
+        setExpiredCount(expired);
+      }
     };
+
+    fetchStats();
+  }, [filterCollege, filterIndustry, filterStatus, startDate, endDate, refreshTrigger]);
+
+  useEffect(() => {
+    const channel = supabase.channel("public:moas-stats")
+      .on("postgres_changes", { event: "*", schema: "public", table: "moas" }, () => {
+        setRefreshTrigger((prev) => prev + 1);
+      }).subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
-  const filterInputClass = "border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neu-secondary bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 transition-colors";
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 transition-colors">
-        <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200">Dashboard Overview</h2>
-        
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <select className={filterInputClass}>
-            <option value="">All Colleges</option>
-            <option value="CCS">College of Computer Studies</option>
-            <option value="CBA">College of Business Administration</option>
-            <option value="COE">College of Engineering</option>
-          </select>
-
-          <div className="flex items-center gap-2">
-            <input 
-              type="date" 
-              className={filterInputClass}
-            />
-            <span className="text-gray-500 dark:text-gray-400 text-sm">to</span>
-            <input 
-              type="date" 
-              className={filterInputClass}
-            />
-          </div>
-        </div>
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="bg-neu-primary text-white rounded-xl p-6 shadow-md flex flex-col items-center justify-center transition hover:scale-105">
+        <h3 className="text-lg font-medium opacity-90">Active MOAs</h3>
+        <p className="text-4xl font-bold mt-2">{activeCount}</p>
       </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-neu-primary text-white rounded-xl p-6 shadow-md flex flex-col items-center justify-center transition hover:scale-105">
-          <h3 className="text-lg font-medium opacity-90">Active MOAs</h3>
-          <p className="text-4xl font-bold mt-2">{activeCount}</p>
-        </div>
-        
-        <div className="bg-neu-secondary text-white rounded-xl p-6 shadow-md flex flex-col items-center justify-center transition hover:scale-105">
-          <h3 className="text-lg font-medium opacity-90">Under Processing</h3>
-          <p className="text-4xl font-bold mt-2">{processingCount}</p>
-        </div>
-        
-        <div className="bg-neu-light dark:bg-gray-800 text-neu-black dark:text-gray-100 rounded-xl p-6 shadow-md flex flex-col items-center justify-center border border-neu-secondary dark:border-gray-700 transition hover:scale-105">
-          <h3 className="text-lg font-medium opacity-90">Expired / Expiring</h3>
-          <p className="text-4xl font-bold mt-2">{expiredCount}</p>
-        </div>
+      
+      <div className="bg-neu-secondary text-white rounded-xl p-6 shadow-md flex flex-col items-center justify-center transition hover:scale-105">
+        <h3 className="text-lg font-medium opacity-90">Under Processing</h3>
+        <p className="text-4xl font-bold mt-2">{processingCount}</p>
+      </div>
+      
+      <div className="bg-neu-light dark:bg-gray-800 text-neu-black dark:text-gray-100 rounded-xl p-6 shadow-md border border-neu-secondary dark:border-gray-700 flex flex-col items-center justify-center transition hover:scale-105">
+        <h3 className="text-lg font-medium opacity-90">Expired / Expiring</h3>
+        <p className="text-4xl font-bold mt-2">{expiredCount}</p>
       </div>
     </div>
   );

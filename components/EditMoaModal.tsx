@@ -7,7 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 interface EditMoaModalProps {
   isOpen: boolean;
   onClose: () => void;
-  moaData: any; // The existing data of the MOA we clicked on
+  moaData: any;
 }
 
 export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalProps) {
@@ -31,17 +31,17 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
     setIsLoading(true);
 
     try {
-      // 1. Update the actual MOA document
       const { error: updateError } = await supabase
         .from("moas")
         .update({
-          hte_id: formData.hteId,
+          hte_id: formData.hteId, 
           company_name: formData.companyName,
           address: formData.address,
           contact_person: formData.contactPerson,
           email: formData.email,
           industry: formData.industry,
           effective_date: formData.effectiveDate || null,
+          expiration_date: formData.expirationDate || null,
           status: formData.status,
           endorsed_by: formData.endorsedBy,
           audit_trail: `Edited by ${user.email} on ${new Date().toLocaleDateString()}`,
@@ -51,7 +51,6 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
 
       if (updateError) throw updateError;
 
-      // 2. Save the official Audit Log
       const { error: auditError } = await supabase
         .from("audit_logs")
         .insert([{
@@ -63,7 +62,6 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
 
       if (auditError) throw auditError;
 
-      // Success! Close modal
       onClose();
     } catch (error) {
       console.error("Error updating MOA: ", error);
@@ -75,7 +73,6 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
 
   if (!isOpen || !moaData) return null;
 
-  // Reusable input class for dark mode consistency
   const inputClassName = "w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-neu-primary focus:border-neu-primary transition-colors";
 
   return (
@@ -88,11 +85,11 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Column 1 */}
+            {/* Left Column */}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">HTE ID</label>
-                <input required type="text" name="hteId" value={formData.hteId || ""} onChange={handleChange} className={inputClassName} />
+                <input readOnly disabled type="text" name="hteId" value={formData.hteId || ""} className={`${inputClassName} opacity-60 cursor-not-allowed bg-gray-100 dark:bg-gray-600`} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Company Name</label>
@@ -104,11 +101,29 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Endorsing College</label>
-                <input required type="text" name="endorsedBy" value={formData.endorsedBy || ""} onChange={handleChange} className={inputClassName} />
+                <select required name="endorsedBy" value={formData.endorsedBy || ""} onChange={handleChange} className={inputClassName}>
+                  <option value="" disabled>Select a College</option>
+                  <option value="College of Informatics and Computing Studies">College of Informatics and Computing Studies</option>
+                  <option value="College of Accountancy">College of Accountancy</option>
+                  <option value="College of Business Administration">College of Business Administration</option>
+                  <option value="College of Communication">College of Communication</option>
+                  <option value="College of Midwifery">College of Midwifery</option>
+                  <option value="College of Nursing">College of Nursing</option>
+                  <option value="College of Law">College of Law</option>
+                  <option value="College of Criminology">College of Criminology</option>
+                  <option value="College of Agriculture">College of Agriculture</option>
+                  <option value="College of Medical Technology">College of Medical Technology</option>
+                  <option value="College of Engineering and Architecture">College of Engineering and Architecture</option>
+                  <option value="College of Arts and Sciences">College of Arts and Sciences</option>
+                  <option value="College of Medicine">College of Medicine</option>
+                  <option value="College of Music">College of Music</option>
+                  <option value="College of Respiratory Therapy">College of Respiratory Therapy</option>
+                  <option value="College of Physical Therapy">College of Physical Therapy</option>
+                </select>
               </div>
             </div>
 
-            {/* Column 2 */}
+            {/* Right Column */}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Person</label>
@@ -117,10 +132,6 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
                 <input required type="email" name="email" value={formData.email || ""} onChange={handleChange} className={inputClassName} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Effective Date</label>
-                <input required type="date" name="effectiveDate" value={formData.effectiveDate || ""} onChange={handleChange} className={inputClassName} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Industry</label>
@@ -135,6 +146,19 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
             </div>
           </div>
 
+          {/* Dedicated Full-Width Row for Dates */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Effective Date</label>
+              <input required type="date" name="effectiveDate" value={formData.effectiveDate || ""} onChange={handleChange} className={inputClassName} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Exp. Date <span className="text-gray-400 text-xs">(Opt)</span></label>
+              <input type="date" name="expirationDate" value={formData.expirationDate || ""} onChange={handleChange} className={inputClassName} />
+            </div>
+          </div>
+
+          {/* Full-Width Row for Status */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status of MOA</label>
             <select name="status" value={formData.status || ""} onChange={handleChange} className={inputClassName}>

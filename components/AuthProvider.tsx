@@ -39,18 +39,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(supabaseUser);
         
         try {
-          // Because of our SQL trigger, the user row is guaranteed to exist.
-          // We just need to grab their role!
           const { data: userData, error } = await supabase
             .from("users")
-            .select("role")
+            .select("role, is_blocked") // <-- Added is_blocked to the fetch
             .eq("id", supabaseUser.id)
             .single();
 
           if (userData) {
+            // --- NEW: Check if they are blocked ---
+            if (userData.is_blocked) {
+              console.error("Access Denied: User account is blocked.");
+              alert("Your account has been blocked by an administrator.");
+              await supabase.auth.signOut();
+              setUser(null);
+              setRole(null);
+              setLoading(false);
+              return;
+            }
+
             setRole(userData.role);
           } else {
-            // Quick fallback just in case the trigger took a millisecond too long
             setRole("student");
           }
         } catch (dbError) {

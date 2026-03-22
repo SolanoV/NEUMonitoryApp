@@ -14,8 +14,9 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const [formData, setFormData] = useState({
-    hteId: "", companyName: "", address: "", contactPerson: "",
-    email: "", industry: "Technology", effectiveDate: "",
+    companyName: "", address: "", contactPerson: "",
+    email: "", industry: "Technology", effectiveDate: "", 
+    expirationDate: "",
     status: "PROCESSING: Awaiting signature of the MOA draft by HTE partner.", endorsedBy: "",
   });
 
@@ -28,17 +29,20 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
     if (!user) return;
     setIsLoading(true);
 
+    const generatedHteId = `HTE-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`;
+
     try {
       const { data: moaData, error: moaError } = await supabase
         .from("moas")
         .insert([{
-          hte_id: formData.hteId,
+          hte_id: generatedHteId,
           company_name: formData.companyName,
           address: formData.address,
           contact_person: formData.contactPerson,
           email: formData.email,
           industry: formData.industry,
           effective_date: formData.effectiveDate || null,
+          expiration_date: formData.expirationDate || null,
           status: formData.status,
           endorsed_by: formData.endorsedBy,
           is_deleted: false,
@@ -60,7 +64,7 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
 
       onClose();
       setFormData({
-        hteId: "", companyName: "", address: "", contactPerson: "", email: "", industry: "Technology", effectiveDate: "", status: "PROCESSING: Awaiting signature of the MOA draft by HTE partner.", endorsedBy: ""
+        companyName: "", address: "", contactPerson: "", email: "", industry: "Technology", effectiveDate: "", expirationDate: "", status: "PROCESSING: Awaiting signature of the MOA draft by HTE partner.", endorsedBy: ""
       });
     } catch (error) {
       console.error("Error adding MOA: ", error);
@@ -72,7 +76,6 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
 
   if (!isOpen) return null;
 
-  // Reusable input class for dark mode consistency
   const inputClassName = "w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-neu-primary focus:border-neu-primary transition-colors";
 
   return (
@@ -84,12 +87,10 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {/* Main 2-Column Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Left Column */}
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">HTE ID</label>
-                <input required type="text" name="hteId" value={formData.hteId} onChange={handleChange} className={inputClassName} placeholder="e.g. HTE-2026-001" />
-              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Company Name</label>
                 <input required type="text" name="companyName" value={formData.companyName} onChange={handleChange} className={inputClassName} />
@@ -100,10 +101,29 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Endorsing College</label>
-                <input required type="text" name="endorsedBy" value={formData.endorsedBy} onChange={handleChange} className={inputClassName} placeholder="e.g. CCS, CBA" />
+                <select required name="endorsedBy" value={formData.endorsedBy} onChange={handleChange} className={inputClassName}>
+                  <option value="" disabled>Select a College</option>
+                  <option value="College of Informatics and Computing Studies">College of Informatics and Computing Studies</option>
+                  <option value="College of Accountancy">College of Accountancy</option>
+                  <option value="College of Business Administration">College of Business Administration</option>
+                  <option value="College of Communication">College of Communication</option>
+                  <option value="College of Midwifery">College of Midwifery</option>
+                  <option value="College of Nursing">College of Nursing</option>
+                  <option value="College of Law">College of Law</option>
+                  <option value="College of Criminology">College of Criminology</option>
+                  <option value="College of Agriculture">College of Agriculture</option>
+                  <option value="College of Medical Technology">College of Medical Technology</option>
+                  <option value="College of Engineering and Architecture">College of Engineering and Architecture</option>
+                  <option value="College of Arts and Sciences">College of Arts and Sciences</option>
+                  <option value="College of Medicine">College of Medicine</option>
+                  <option value="College of Music">College of Music</option>
+                  <option value="College of Respiratory Therapy">College of Respiratory Therapy</option>
+                  <option value="College of Physical Therapy">College of Physical Therapy</option>
+                </select>
               </div>
             </div>
 
+            {/* Right Column */}
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Person</label>
@@ -112,10 +132,6 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
                 <input required type="email" name="email" value={formData.email} onChange={handleChange} className={inputClassName} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Effective Date</label>
-                <input required type="date" name="effectiveDate" value={formData.effectiveDate} onChange={handleChange} className={inputClassName} />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Industry</label>
@@ -130,6 +146,19 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
             </div>
           </div>
 
+          {/* NEW: Dedicated Full-Width Row for Dates */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Effective Date</label>
+              <input required type="date" name="effectiveDate" value={formData.effectiveDate} onChange={handleChange} className={inputClassName} />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Exp. Date <span className="text-gray-400 text-xs">(Opt)</span></label>
+              <input type="date" name="expirationDate" value={formData.expirationDate} onChange={handleChange} className={inputClassName} />
+            </div>
+          </div>
+
+          {/* Full-Width Row for Status */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status of MOA</label>
             <select name="status" value={formData.status} onChange={handleChange} className={inputClassName}>
@@ -144,6 +173,7 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
             </select>
           </div>
 
+          {/* Action Buttons */}
           <div className="pt-4 flex justify-end space-x-3 border-t border-gray-100 dark:border-gray-700">
             <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition">Cancel</button>
             <button type="submit" disabled={isLoading} className="px-4 py-2 text-white bg-neu-primary hover:bg-neu-secondary rounded-md transition disabled:opacity-50">
