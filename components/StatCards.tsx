@@ -1,4 +1,3 @@
-// components/StatCards.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -55,14 +54,15 @@ export default function StatCards() {
     };
   }, []);
 
-  // UI remains identical...
+  const filterInputClass = "border border-gray-300 dark:border-gray-700 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neu-secondary bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 transition-colors";
+
   return (
     <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-        <h2 className="text-lg font-semibold text-gray-700">Dashboard Overview</h2>
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white dark:bg-gray-900 p-4 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 transition-colors">
+        <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-200">Dashboard Overview</h2>
         
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <select className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neu-secondary bg-white text-gray-700">
+          <select className={filterInputClass}>
             <option value="">All Colleges</option>
             <option value="CCS">College of Computer Studies</option>
             <option value="CBA">College of Business Administration</option>
@@ -72,12 +72,12 @@ export default function StatCards() {
           <div className="flex items-center gap-2">
             <input 
               type="date" 
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neu-secondary text-gray-700"
+              className={filterInputClass}
             />
-            <span className="text-gray-500 text-sm">to</span>
+            <span className="text-gray-500 dark:text-gray-400 text-sm">to</span>
             <input 
               type="date" 
-              className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-neu-secondary text-gray-700"
+              className={filterInputClass}
             />
           </div>
         </div>
@@ -94,7 +94,7 @@ export default function StatCards() {
           <p className="text-4xl font-bold mt-2">{processingCount}</p>
         </div>
         
-        <div className="bg-neu-light text-neu-black rounded-xl p-6 shadow-md flex flex-col items-center justify-center border border-neu-secondary transition hover:scale-105">
+        <div className="bg-neu-light dark:bg-gray-800 text-neu-black dark:text-gray-100 rounded-xl p-6 shadow-md flex flex-col items-center justify-center border border-neu-secondary dark:border-gray-700 transition hover:scale-105">
           <h3 className="text-lg font-medium opacity-90">Expired / Expiring</h3>
           <p className="text-4xl font-bold mt-2">{expiredCount}</p>
         </div>

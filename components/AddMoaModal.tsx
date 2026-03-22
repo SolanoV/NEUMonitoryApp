@@ -1,4 +1,3 @@
-// components/AddMoaModal.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -14,17 +13,10 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
 
-  // Form State
   const [formData, setFormData] = useState({
-    hteId: "",
-    companyName: "",
-    address: "",
-    contactPerson: "",
-    email: "",
-    industry: "Technology", // Default
-    effectiveDate: "",
-    status: "PROCESSING: Awaiting signature of the MOA draft by HTE partner.", // Default
-    endorsedBy: "",
+    hteId: "", companyName: "", address: "", contactPerson: "",
+    email: "", industry: "Technology", effectiveDate: "",
+    status: "PROCESSING: Awaiting signature of the MOA draft by HTE partner.", endorsedBy: "",
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -37,7 +29,6 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
     setIsLoading(true);
 
     try {
-      // 1. Save the new MOA to the database (Mapping camelCase to Postgres snake_case)
       const { data: moaData, error: moaError } = await supabase
         .from("moas")
         .insert([{
@@ -58,24 +49,18 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
 
       if (moaError) throw moaError;
 
-      // 2. Save the official Audit Log
-      const { error: auditError } = await supabase
-        .from("audit_logs")
-        .insert([{
+      const { error: auditError } = await supabase.from("audit_logs").insert([{
           moa_id: moaData.id,
           company_name: formData.companyName,
           user_email: user.email,
           action: "INSERT",
-        }]);
+      }]);
 
       if (auditError) throw auditError;
 
-      // Success! Close the modal and reset the form
       onClose();
       setFormData({
-        hteId: "", companyName: "", address: "", contactPerson: "", 
-        email: "", industry: "Technology", effectiveDate: "", 
-        status: "PROCESSING: Awaiting signature of the MOA draft by HTE partner.", endorsedBy: ""
+        hteId: "", companyName: "", address: "", contactPerson: "", email: "", industry: "Technology", effectiveDate: "", status: "PROCESSING: Awaiting signature of the MOA draft by HTE partner.", endorsedBy: ""
       });
     } catch (error) {
       console.error("Error adding MOA: ", error);
@@ -87,54 +72,54 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
 
   if (!isOpen) return null;
 
-  // Render remains exactly the same...
+  // Reusable input class for dark mode consistency
+  const inputClassName = "w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-neu-primary focus:border-neu-primary transition-colors";
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
-          <h2 className="text-xl font-bold text-gray-800">Add New MOA</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-red-500 transition text-2xl font-semibold">&times;</button>
+    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4 transition-opacity">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 rounded-t-xl">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">Add New MOA</h2>
+          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-red-500 transition text-2xl font-semibold">&times;</button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Column 1 */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">HTE ID</label>
-                <input required type="text" name="hteId" value={formData.hteId} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 focus:ring-neu-primary focus:border-neu-primary" placeholder="e.g. HTE-2026-001" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">HTE ID</label>
+                <input required type="text" name="hteId" value={formData.hteId} onChange={handleChange} className={inputClassName} placeholder="e.g. HTE-2026-001" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                <input required type="text" name="companyName" value={formData.companyName} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 focus:ring-neu-primary focus:border-neu-primary" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Company Name</label>
+                <input required type="text" name="companyName" value={formData.companyName} onChange={handleChange} className={inputClassName} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <input required type="text" name="address" value={formData.address} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 focus:ring-neu-primary focus:border-neu-primary" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+                <input required type="text" name="address" value={formData.address} onChange={handleChange} className={inputClassName} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Endorsing College</label>
-                <input required type="text" name="endorsedBy" value={formData.endorsedBy} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 focus:ring-neu-primary focus:border-neu-primary" placeholder="e.g. CCS, CBA" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Endorsing College</label>
+                <input required type="text" name="endorsedBy" value={formData.endorsedBy} onChange={handleChange} className={inputClassName} placeholder="e.g. CCS, CBA" />
               </div>
             </div>
 
-            {/* Column 2 */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
-                <input required type="text" name="contactPerson" value={formData.contactPerson} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 focus:ring-neu-primary focus:border-neu-primary" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Person</label>
+                <input required type="text" name="contactPerson" value={formData.contactPerson} onChange={handleChange} className={inputClassName} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                <input required type="email" name="email" value={formData.email} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 focus:ring-neu-primary focus:border-neu-primary" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
+                <input required type="email" name="email" value={formData.email} onChange={handleChange} className={inputClassName} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Effective Date</label>
-                <input required type="date" name="effectiveDate" value={formData.effectiveDate} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 focus:ring-neu-primary focus:border-neu-primary" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Effective Date</label>
+                <input required type="date" name="effectiveDate" value={formData.effectiveDate} onChange={handleChange} className={inputClassName} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
-                <select name="industry" value={formData.industry} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 focus:ring-neu-primary focus:border-neu-primary">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Industry</label>
+                <select name="industry" value={formData.industry} onChange={handleChange} className={inputClassName}>
                   <option value="Technology">Technology</option>
                   <option value="Food">Food</option>
                   <option value="Services">Services</option>
@@ -145,10 +130,9 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
             </div>
           </div>
 
-          {/* Full Width */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status of MOA</label>
-            <select name="status" value={formData.status} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2 focus:ring-neu-primary focus:border-neu-primary">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status of MOA</label>
+            <select name="status" value={formData.status} onChange={handleChange} className={inputClassName}>
               <option value="APPROVED: Signed by President">APPROVED: Signed by President</option>
               <option value="APPROVED: On-going notarization">APPROVED: On-going notarization</option>
               <option value="APPROVED: No notarization needed">APPROVED: No notarization needed</option>
@@ -160,8 +144,8 @@ export default function AddMoaModal({ isOpen, onClose }: AddMoaModalProps) {
             </select>
           </div>
 
-          <div className="pt-4 flex justify-end space-x-3 border-t border-gray-100">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition">Cancel</button>
+          <div className="pt-4 flex justify-end space-x-3 border-t border-gray-100 dark:border-gray-700">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition">Cancel</button>
             <button type="submit" disabled={isLoading} className="px-4 py-2 text-white bg-neu-primary hover:bg-neu-secondary rounded-md transition disabled:opacity-50">
               {isLoading ? "Saving..." : "Save MOA"}
             </button>

@@ -1,4 +1,3 @@
-// components/EditMoaModal.tsx
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -76,13 +75,15 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
 
   if (!isOpen || !moaData) return null;
 
-  // Render remains exactly the same...
+  // Reusable input class for dark mode consistency
+  const inputClassName = "w-full bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md p-2 focus:ring-neu-primary focus:border-neu-primary transition-colors";
+
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-xl">
-          <h2 className="text-xl font-bold text-gray-800">Edit MOA: {formData.companyName}</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-red-500 transition text-2xl font-semibold">&times;</button>
+    <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4 transition-opacity">
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+        <div className="p-6 border-b border-gray-100 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900/50 rounded-t-xl">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white">Edit MOA: {formData.companyName}</h2>
+          <button onClick={onClose} className="text-gray-500 dark:text-gray-400 hover:text-red-500 transition text-2xl font-semibold">&times;</button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -90,40 +91,40 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
             {/* Column 1 */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">HTE ID</label>
-                <input required type="text" name="hteId" value={formData.hteId || ""} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">HTE ID</label>
+                <input required type="text" name="hteId" value={formData.hteId || ""} onChange={handleChange} className={inputClassName} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Company Name</label>
-                <input required type="text" name="companyName" value={formData.companyName || ""} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Company Name</label>
+                <input required type="text" name="companyName" value={formData.companyName || ""} onChange={handleChange} className={inputClassName} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Address</label>
-                <input required type="text" name="address" value={formData.address || ""} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Address</label>
+                <input required type="text" name="address" value={formData.address || ""} onChange={handleChange} className={inputClassName} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Endorsing College</label>
-                <input required type="text" name="endorsedBy" value={formData.endorsedBy || ""} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Endorsing College</label>
+                <input required type="text" name="endorsedBy" value={formData.endorsedBy || ""} onChange={handleChange} className={inputClassName} />
               </div>
             </div>
 
             {/* Column 2 */}
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Contact Person</label>
-                <input required type="text" name="contactPerson" value={formData.contactPerson || ""} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Contact Person</label>
+                <input required type="text" name="contactPerson" value={formData.contactPerson || ""} onChange={handleChange} className={inputClassName} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
-                <input required type="email" name="email" value={formData.email || ""} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Email Address</label>
+                <input required type="email" name="email" value={formData.email || ""} onChange={handleChange} className={inputClassName} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Effective Date</label>
-                <input required type="date" name="effectiveDate" value={formData.effectiveDate || ""} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2" />
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Effective Date</label>
+                <input required type="date" name="effectiveDate" value={formData.effectiveDate || ""} onChange={handleChange} className={inputClassName} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Industry</label>
-                <select name="industry" value={formData.industry || "Technology"} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Industry</label>
+                <select name="industry" value={formData.industry || "Technology"} onChange={handleChange} className={inputClassName}>
                   <option value="Technology">Technology</option>
                   <option value="Food">Food</option>
                   <option value="Services">Services</option>
@@ -135,8 +136,8 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Status of MOA</label>
-            <select name="status" value={formData.status || ""} onChange={handleChange} className="w-full border border-gray-300 rounded-md p-2">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status of MOA</label>
+            <select name="status" value={formData.status || ""} onChange={handleChange} className={inputClassName}>
               <option value="APPROVED: Signed by President">APPROVED: Signed by President</option>
               <option value="APPROVED: On-going notarization">APPROVED: On-going notarization</option>
               <option value="APPROVED: No notarization needed">APPROVED: No notarization needed</option>
@@ -148,9 +149,9 @@ export default function EditMoaModal({ isOpen, onClose, moaData }: EditMoaModalP
             </select>
           </div>
 
-          <div className="pt-4 flex justify-end space-x-3 border-t border-gray-100">
-            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition">Cancel</button>
-            <button type="submit" disabled={isLoading} className="px-4 py-2 text-white bg-blue-600 hover:bg-blue-700 rounded-md transition disabled:opacity-50">
+          <div className="pt-4 flex justify-end space-x-3 border-t border-gray-100 dark:border-gray-700">
+            <button type="button" onClick={onClose} className="px-4 py-2 text-gray-700 dark:text-gray-200 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-md transition">Cancel</button>
+            <button type="submit" disabled={isLoading} className="px-4 py-2 text-white bg-blue-600 dark:bg-neu-primary hover:bg-blue-700 dark:hover:bg-neu-secondary rounded-md transition disabled:opacity-50">
               {isLoading ? "Saving..." : "Save Changes"}
             </button>
           </div>
