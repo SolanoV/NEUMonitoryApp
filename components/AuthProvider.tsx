@@ -27,14 +27,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (supabaseUser) {
         
         // --- SECURITY CHECK ---
-        if (!supabaseUser.email?.endsWith("@neu.edu.ph")) {
+        /*if (!supabaseUser.email?.endsWith("@neu.edu.ph")) {
           console.error("Access Denied: Not an institutional email.");
           await supabase.auth.signOut();
           setUser(null);
           setRole(null);
           setLoading(false);
           return;
-        }
+        }*/
 
         setUser(supabaseUser);
         
