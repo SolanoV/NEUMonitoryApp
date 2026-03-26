@@ -26,7 +26,7 @@ export default function LoginPage() {
       provider: "google",
       options: {
         queryParams: {
-          //hd: "neu.edu.ph",
+          hd: "neu.edu.ph",
           prompt: "select_account",
         },
         redirectTo: `${window.location.origin}/auth/callback`,
